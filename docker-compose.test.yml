@@ -1,0 +1,19 @@
+# Disposable PostgreSQL for `npm test` only. Data lives in tmpfs and is gone when
+# the container stops. Kept separate from docker-compose.yml so it needs no JWT_SECRET.
+name: identity-service-test
+services:
+  postgres-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: identity
+      POSTGRES_DB: identity_test
+    ports:
+      - "${TEST_POSTGRES_PORT:-5433}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U identity -d identity_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 15

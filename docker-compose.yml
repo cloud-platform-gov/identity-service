@@ -1,0 +1,54 @@
+# Local development: PostgreSQL, a one-shot migration job and the Identity Service.
+# The API Gateway runs from its own Compose project and reaches this service at
+# http://host.docker.internal:4001 (its default).
+#
+# JWT_SECRET must be set in the shell or in .env: JWT_SECRET=$(openssl rand -base64 48)
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      # Local-only credentials; production uses a managed database and injected secrets.
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: identity
+      POSTGRES_DB: identity
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U identity -d identity"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    build: .
+    image: identity-service:local
+    command: ["node", "dist/db/migrate.js"]
+    environment:
+      DATABASE_URL: postgres://identity:identity@postgres:5432/identity
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  identity-service:
+    image: identity-service:local
+    ports:
+      - "${PORT:-4001}:4001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://identity:identity@postgres:5432/identity
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set (openssl rand -base64 48)}
+      JWT_ISSUER: ${JWT_ISSUER:-cloud-platform-gov-identity}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-15m}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
