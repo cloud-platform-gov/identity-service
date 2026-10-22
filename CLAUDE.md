@@ -27,6 +27,7 @@ npm is the package manager. Node ≥ 24.
   - Single file or test: `npx vitest run tests/me-logout.test.ts -t "expired"`.
 - `npm run db:generate -- --name <change>`: generates SQL in `drizzle/` after editing `src/db/schema.ts`. Commit it.
 - `npm run db:migrate`: applies migrations to `DATABASE_URL`. Migrations never run on app startup.
+- `npm run db:studio`: Drizzle Studio. `drizzle.config.ts` loads `.env` itself and falls back to the local Compose DB.
 - `docker compose up --build -d --wait`: runs postgres, the one-shot `migrate` job, then the service. It needs `JWT_SECRET` in the env or `.env`; every compose command against this file fails without it.
 
 Before finishing a change, run `npm run typecheck && npm test`. If you touch the `Dockerfile` or the dependencies, also run `docker build`.

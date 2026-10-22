@@ -1,8 +1,14 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from 'drizzle-kit';
 
-// Only `drizzle-kit generate` is used, which needs no database connection.
+// drizzle-kit does not load .env itself; `generate` works without it, `studio` needs DATABASE_URL.
+if (existsSync('.env')) process.loadEnvFile('.env');
+
 export default defineConfig({
   dialect: 'postgresql',
   schema: './src/db/schema.ts',
   out: './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL ?? 'postgres://identity:identity@localhost:5432/identity',
+  },
 });

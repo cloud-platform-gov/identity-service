@@ -48,6 +48,7 @@ Compose reads `JWT_SECRET` from `.env` automatically. Without it, every `docker 
 | `npm run db:generate` | Generate a new migration from `src/db/schema.ts` |
 | `npm run db:migrate` | Apply pending migrations to `DATABASE_URL` (from sources) |
 | `npm run db:migrate:prod` | Same, from the compiled build (used in the image) |
+| `npm run db:studio` | Open Drizzle Studio on `DATABASE_URL` (from `.env`, default local Compose DB) at https://local.drizzle.studio |
 | `npm run test:db:up` / `test:db:down` | Start / remove the disposable test database |
 | `npm test` | Run the Vitest suite once |
 | `npx vitest run tests/login.test.ts -t "generic 401"` | Run one file / test by name |
