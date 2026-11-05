@@ -9,6 +9,7 @@ import type { Database } from './db/client.js';
 import { errorHandler, notFoundHandler } from './errors.js';
 import { healthRouter } from './routes/health.routes.js';
 import { IDENTITY_PREFIX, identityRouter } from './routes/identity.routes.js';
+import { INTERNAL_PREFIX, internalRouter } from './routes/internal.routes.js';
 
 const REQUEST_ID_HEADER = 'x-request-id';
 const SAFE_REQUEST_ID = /^[\w.-]{1,128}$/;
@@ -49,6 +50,9 @@ export function buildApp({ config, db }: AppDependencies): Express {
 
   app.use(healthRouter());
   app.use(IDENTITY_PREFIX, identityRouter(config, db));
+  if (config.INTERNAL_API_TOKEN) {
+    app.use(INTERNAL_PREFIX, internalRouter(config.INTERNAL_API_TOKEN, db));
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler(config));

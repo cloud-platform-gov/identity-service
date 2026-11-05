@@ -10,6 +10,9 @@ const duration = z
   .regex(/^[1-9]\d*[smhd]$/, 'must be a positive duration such as 900s, 15m, 1h or 1d')
   .transform((value) => Number(value.slice(0, -1)) * DURATION_UNITS[value.slice(-1) as keyof typeof DURATION_UNITS]);
 
+/** HS256 and the internal API token both need at least 256 bits. */
+const secret32 = z.string().refine((value) => Buffer.byteLength(value, 'utf8') >= 32, 'must be at least 32 bytes');
+
 const databaseUrl = z.url({ protocol: /^postgres(ql)?$/, error: 'must be a postgres:// or postgresql:// URL' });
 
 /** Comma-separated list of exact origins allowed by CORS. Empty means no cross-origin access. */
@@ -36,11 +39,14 @@ const envSchema = z.object({
   DATABASE_URL: databaseUrl,
 
   // HS256 requires a key of at least 256 bits.
-  JWT_SECRET: z.string().refine((value) => Buffer.byteLength(value, 'utf8') >= 32, 'must be at least 32 bytes'),
+  JWT_SECRET: secret32,
   JWT_ISSUER: z.string().min(1).default('cloud-platform-gov-identity'),
   JWT_ACCESS_TOKEN_TTL: duration.prefault('15m'),
 
   CORS_ORIGIN: corsOrigins,
+
+  // Shared with internal callers (the Notification Service). Unset disables /internal entirely.
+  INTERNAL_API_TOKEN: secret32.optional(),
 });
 
 export type Config = z.output<typeof envSchema>;

@@ -68,6 +68,7 @@ All configuration comes from environment variables, validated at startup with Zo
 | `JWT_ISSUER` | `cloud-platform-gov-identity` | `iss` claim set on and required from tokens. |
 | `JWT_ACCESS_TOKEN_TTL` | `15m` | Access-token lifetime: `<n>s`, `<n>m`, `<n>h` or `<n>d`. |
 | `CORS_ORIGIN` | _empty_ | Comma-separated exact origins allowed by CORS. Empty means no cross-origin browser access. |
+| `INTERNAL_API_TOKEN` | _empty_ | Shared secret for the internal API (`/internal/*`), at least 32 bytes. Empty disables those routes (404). The Notification Service sends it as `IDENTITY_INTERNAL_TOKEN`. |
 | `TEST_DATABASE_URL` | `postgres://identity:identity@localhost:5433/identity_test` | Tests only. The database name must end in `_test`. |
 
 `.env.example` contains only local-development values. The `identity`/`identity` PostgreSQL credentials are local-only and exist solely in `docker-compose.yml`.
@@ -110,6 +111,15 @@ Responses:
 
 **`POST /identity/logout`**, with header `Authorization: Bearer <jwt>` → `204`, or `401` without a valid token. See [Logout semantics](#jwt-expiration-and-logout-semantics).
 
+### Internal API (service-to-service)
+
+`GET /internal/users/:id` returns the contact details another service needs to notify a user. Today the only caller is the Notification Service, which receives just a `userId` in `request.created.v1`.
+
+- Mounted only when `INTERNAL_API_TOKEN` is set, and it requires `Authorization: Bearer <INTERNAL_API_TOKEN>`. A user access token is **not** accepted. Token checks are constant-time.
+- **Not public.** The API Gateway only proxies `/api/v1/identity/*`, so `/internal/*` is reachable only from the private network (for example `host.docker.internal:4001` locally).
+- `200 {"user":{"id","name","email"}}`, the minimum a sender needs, without timestamps.
+- Errors: `401 UNAUTHORIZED` (missing or wrong token, checked before the id), `400 BAD_REQUEST` (id is not a UUID), `404 USER_NOT_FOUND`.
+
 ### Error format
 
 Same shape as the API Gateway, plus optional validation `details`:
@@ -125,6 +135,7 @@ The codes are:
 - `INVALID_CREDENTIALS`
 - `NOT_FOUND`
 - `EMAIL_ALREADY_REGISTERED`
+- `USER_NOT_FOUND` (internal API only)
 - `PAYLOAD_TOO_LARGE`
 - `UNSUPPORTED_MEDIA_TYPE`
 - `INTERNAL_ERROR`

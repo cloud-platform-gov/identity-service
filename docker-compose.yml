@@ -45,6 +45,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-cloud-platform-gov-identity}
       JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-15m}
       CORS_ORIGIN: ${CORS_ORIGIN:-}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The Identity Service of `cloud-platform-gov`, a citizen-services platform for a Cloud Computing course. It is built with Express 5 + TypeScript (strict, ESM, `nodenext`), with PostgreSQL via Drizzle, Argon2id and JWT (`jose`, HS256). It runs behind `../api-gateway` (Fastify, separate repo), which proxies `/api/v1/identity/*` to this service's `/identity/*`.
 
 Scope rules:
-- Only identity: register, login, `/me`, logout. Don't implement other services here.
+- Only identity: register, login, `/me`, logout, plus the internal user lookup `GET /internal/users/:id` for other services. Don't implement other services here.
 - Don't put logic in the gateway.
 - No DI container or extra layers: route handlers call plain functions in `src/modules/identity/`.
 - Logout is stateless: the server does not revoke tokens. Don't claim it does. Revocation needs a real mechanism, and the README and tests must change with it.
@@ -45,6 +45,7 @@ Before finishing a change, run `npm run typecheck && npm test`. If you touch the
   - `password.ts`: Argon2id, plus `verifyAgainstDummy` for timing-equal login failures.
   - `tokens.ts`: sign/verify. Claims are only `sub`/`iss`/`iat`/`exp`, and only `HS256` is accepted.
   - `users.ts`: Drizzle queries. `createUser` returns `null` on a unique violation (`23505`, found by walking `err.cause`).
+- **`src/routes/internal.routes.ts`** + **`src/middlewares/internal-auth.ts`**: `/internal/*` for service-to-service calls, mounted only when `INTERNAL_API_TOKEN` is set. It checks a shared bearer token (constant-time, SHA-256 digests), never a user JWT. The gateway doesn't proxy it. Keep responses minimal (`id`, `name`, `email`).
 - **`src/middlewares/authenticate.ts`**: puts the token's `sub` in `res.locals.userId`. Every failure throws the same `unauthorized()` error.
 - **`src/db/migrate.ts`**: both a CLI and `runMigrations(url)`, which the test global setup uses. `MIGRATIONS_FOLDER` resolves relative to the file, so it works from `src/` and `dist/`.
 

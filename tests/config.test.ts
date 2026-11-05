@@ -39,6 +39,14 @@ describe('loadConfig', () => {
     expect(issuesFor({ ...required, JWT_SECRET: 'x'.repeat(31) })).toEqual(['JWT_SECRET: must be at least 32 bytes']);
   });
 
+  it('leaves INTERNAL_API_TOKEN unset by default and rejects one shorter than 32 bytes', () => {
+    expect(loadConfig(required).INTERNAL_API_TOKEN).toBeUndefined();
+    expect(loadConfig({ ...required, INTERNAL_API_TOKEN: '' }).INTERNAL_API_TOKEN).toBeUndefined();
+    expect(issuesFor({ ...required, INTERNAL_API_TOKEN: 'x'.repeat(31) })).toEqual([
+      'INTERNAL_API_TOKEN: must be at least 32 bytes',
+    ]);
+  });
+
   it('rejects a non-postgres DATABASE_URL', () => {
     expect(issuesFor({ ...required, DATABASE_URL: 'mysql://localhost/db' })[0]).toMatch(/^DATABASE_URL:/);
   });
